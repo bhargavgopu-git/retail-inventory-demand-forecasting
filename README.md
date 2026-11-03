@@ -1,258 +1,86 @@
-# Retail Inventory Optimization & Demand Forecasting
-SQL Server | Python | Power BI
+# Retail Inventory & Demand Forecasting System
 
-An end-to-end retail inventory and demand forecasting project using SQL, Python, and Power BI. Analyzed stockout and overstock risks across a multi-store retail operation, engineered inventory metrics, and built a Random Forest model to forecast 30-day product demand and support reorder decisions.
+An end-to-end data analytics and machine learning project designed to analyze retail sales, forecast future product demand, and optimize inventory management using historical sales data.
 
----
+## 1. Project Overview
 
-## The Business Problem
-A multi-store retail operation was losing revenue to two opposite problems at the same time: shelves running empty on high-demand products, while other products sat unsold. The goal was to understand why, forecast what demand would look like over the next 30 days, and give store managers a clear action list.
+The Retail Inventory & Demand Forecasting System helps businesses make data-driven inventory decisions by analyzing historical sales patterns and predicting future demand.
 
-**Key Findings:**
-- 69% of all store/product combinations are critically low on stock and at risk of running out. Only 6% are in a healthy state.
-- Clothing runs out the fastest (14.3% stockout rate) while Furniture sits unsold the longest (20.8% overstock rate).
-- Promotions increase demand by about 30%. Stores are not accounting for this spike when placing orders, which is likely making the stockout problem worse.
-  
---- 
+The project combines SQL-based data processing, Python-based machine learning, demand forecasting, inventory risk analysis, and Power BI visualization into one integrated analytics solution.
 
-## Dashboard Preview
+### Key Objectives
+- Analyze historical retail sales data.
+- Identify sales trends and demand patterns.
+- Forecast product demand for the next 30 days.
+- Compare actual sales with predicted demand.
+- Identify inventory risks and potential stock shortages.
+- Support better inventory planning and decision-making.
 
-### Page 1: Inventory Health & Risk
+## 2. Project Architecture
 
-<p align="center">
-  <img src="dashboard/Inventory Health & Risk.PNG"
-       width="900"
-       style="border:1px solid #ddd; border-radius:6px;" />
-</p>
-
-<br>
-
-### Page 2: Demand Drivers & Forecasting
-<p align="center">
-  <img src="dashboard/Demand Drivers & Forecasting.PNG"
-       width="900"
-       style="border:1px solid #ddd; border-radius:6px;" />
-</p>
-
----
-
-## Dataset
-
-- **Source:** [Kaggle – Retail Store Inventory and Demand Forecasting](https://www.kaggle.com/datasets/atomicd/retail-store-inventory-and-demand-forecasting)
-- **Rows:** 76,000
-- **Stores:** 5
-- **Products:** 20
-- **Categories:** 5 (Clothing, Electronics, Furniture, Groceries, Toys)
-- **Regions:** 4
-- **Date Range:** Jan 2022 – Jan 2024
-- **Null Values:** 0
-
-| Column | Description |
-|---|---|
-| `Date` | Date of the sales record |
-| `Store_ID` | Unique store identifier |
-| `Product_ID` | Unique product identifier |
-| `Category` | Product category |
-| `Region` | Geographic region of the store |
-| `Inventory_Level` | Current inventory available |
-| `Units_Sold` | Units sold that day |
-| `Units_Ordered` | Units ordered for replenishment |
-| `Price` | Product selling price |
-| `Discount` | Discount applied |
-| `Weather_Condition` | Weather during the sales period |
-| `Promotion` | Whether a promotion was active (1 = Yes, 0 = No) |
-| `Competitor_Pricing` | Competitor price for similar products |
-| `Seasonality` | Seasonal period (Winter, Spring, etc.) |
-| `Epidemic` | Whether an epidemic period was active (1 = Yes, 0 = No) |
-| `Demand` | Estimated daily product demand |
-
----
-
-## SQL: Data Validation
-
-The dataset came in clean from Kaggle. Validation confirmed:
-- 76,000 rows, 0 nulls, 0 duplicates
-- No negative values across inventory, units sold, or demand
-- No logical errors (units sold exceeding inventory level returned 0 rows)
-- 5 stores, 20 products, 5 categories, 4 regions confirmed
-
----
-
-## SQL: Feature Engineering
-
-Three inventory flags and two time features were created directly in SQL before passing the data to Python.
-
-**Stockout:** flagged when units sold met or exceeded the inventory level 
-AND demand exceeded inventory, meaning the product genuinely ran out:
-```sql
-UPDATE sales_data
-SET Stockout =
-    CASE
-        WHEN Units_Sold >= Inventory_Level
-             AND Demand > Inventory_Level
-        THEN 1
-        ELSE 0
-    END;
+```text
+                 RETAIL SALES DATA
+                        |
+                        v
+              DATA COLLECTION
+                 (CSV Files)
+                        |
+                        v
+              DATA CLEANING
+               (SQL + Python)
+                        |
+                        v
+             FEATURE ENGINEERING
+          (Demand & Sales Features)
+                        |
+                        v
+             DEMAND FORECASTING
+               (Machine Learning)
+                        |
+              +---------+---------+
+              |                   |
+              v                   v
+       DEMAND PREDICTION     MODEL EVALUATION
+              |                   |
+              v                   v
+       30-DAY FORECAST       PERFORMANCE METRICS
+              |
+              v
+        INVENTORY ANALYSIS
+              |
+              v
+       INVENTORY RISK ANALYSIS
+              |
+              v
+        POWER BI DASHBOARD
+              |
+              v
+       BUSINESS INSIGHTS &
+       DECISION SUPPORT
 ```
 
-**Overstock:** flagged when inventory level exceeded 5x average daily 
-demand for that store/product combination:
-```sql
-WITH demand_calc AS (
-    SELECT Store_ID, Product_ID,
-           AVG(Demand) AS avg_daily_demand
-    FROM sales_data
-    GROUP BY Store_ID, Product_ID
-)
-UPDATE s
-SET Overstock =
-    CASE
-        WHEN s.Inventory_Level > (d.avg_daily_demand * 5)
-        THEN 1 ELSE 0
-    END
-FROM sales_data s
-JOIN demand_calc d
-    ON s.Store_ID = d.Store_ID
-    AND s.Product_ID = d.Product_ID;
-```
+## 3. Technology Stack
 
-**Reorder_Needed** - flagged when inventory level fell below 5x average 
-daily demand, signaling it was time to reorder:
-```sql
-WITH demand_calc AS (
-    SELECT Store_ID, Product_ID,
-           AVG(Demand) AS reorder_point
-    FROM sales_data
-    GROUP BY Store_ID, Product_ID
-)
-UPDATE s
-SET Reorder_Needed =
-    CASE
-        WHEN s.Inventory_Level < (d.reorder_point * 5)
-        THEN 1 ELSE 0
-    END
-FROM sales_data s
-JOIN demand_calc d
-    ON s.Store_ID = d.Store_ID
-    AND s.Product_ID = d.Product_ID;
-```
-
-**Month_Num** and **Day_Of_Week** were added to capture seasonality and weekly purchasing patterns for the forecasting model.
-
----
-
-## SQL: Business Analysis
-
-- Overall stockout rate: **10.3%** | Overall overstock rate: **15.9%**
-- Clothing had the highest stockout rate (14.3%), Furniture the lowest (5.9%)
-- Furniture had the highest overstock rate (20.8%), Toys the lowest (11.4%)
-- Promotions increased average demand from 95 to 123 (+29.7%) and average 
-  units sold from 81.8 to 103.1
-- South and East regions showed the highest demand, and West the lowest
-- Stockout rate during promotions was higher, confirming stores are not 
-  stocking up ahead of promotional periods
-
----
-
-## Python: EDA & Inventory Analysis
-
-- Groceries had the highest average demand (121) and the highest volatility
-- Furniture had the lowest average demand (73.6)
-- Demand dropped approximately 38% during epidemic periods (~113 normal 
-  vs ~70 epidemic)
-- Demand and Units_Sold correlation: 0.83
-- Price and Competitor_Pricing correlation: 0.98 (prices move together 
-  closely across competitors)
-- Clothing had the highest inventory turnover (0.52), Furniture the 
-  lowest (0.37)
-
-### Inventory Risk Classification
-
-A risk framework was built using reorder points, inventory levels, rolling demand trends, and weeks of supply:
-
-| Risk Level | Count | Share |
-|---|---|---|
-| Critical Stockout Risk | 69 | 69% |
-| At Risk | 25 | 25% |
-| Healthy | 6 | 6% |
-| Overstocked | 0 | 0% |
-
-69% of all store/product combinations were classified as Critical Stockout 
-Risk, indicating widespread understocking across the operation.
-
----
-
-## Python: Feature Engineering
-
-| Feature | Purpose |
+| Technology | Purpose |
 |---|---|
-| `rolling_7d_demand` | Captures short-term demand trends |
-| `inventory_turnover` | Measures inventory efficiency |
-| `Month_Num` | Monthly seasonality (from SQL) |
-| `Day_Of_Week` | Weekly purchasing behavior (from SQL) |
+| Python | Data processing and machine learning |
+| Pandas & NumPy | Data cleaning and analysis |
+| Scikit-learn | Machine learning and model evaluation |
+| SQL | Data cleaning and business analysis |
+| Jupyter Notebook | Model development and experimentation |
+| Power BI | Interactive dashboard and visualization |
+| CSV | Dataset storage and data exchange |
 
----
+## 4. Project Structure
 
-## Demand Forecasting Model
-
-A Random Forest Regressor was trained to forecast daily product demand 
-over a 30-day horizon.
-
-**Features used:** rolling 7-day demand, price, discount, promotions, 
-competitor pricing, inventory levels, seasonal indicators
-
-### Model Performance
-
-| Metric | Result |
-|---|---|
-| MAE | 17.92 |
-| RMSE | 24.60 |
-| R² Score | 0.69 |
-| MAPE | 26% |
-
-Predictions were off by about 18 units on average. The model explained 
-69% of demand variance and tracked actual demand reasonably well.
-
-### Top Demand Drivers
-
-| Feature | Importance |
-|---|---|
-| rolling_7d_demand | 46% |
-| Price | 11.7% |
-| Promotion | 7.8% |
-| Competitor_Pricing | 6.9% |
-
-Recent sales history (rolling 7-day demand) was by far the strongest 
-predictor, meaning last week's demand is the best signal for this week's 
-orders.
-
-### 30-Day Forecast Results
-- Clothing projected as highest-demand category
-- Furniture projected as the lowest-demand category
-
----
-
-## Recommendations
-
-| Recommendation | Reason |
-|---|---|
-| Increase safety stock for Clothing | Highest stockout rate (14.3%) |
-| Reduce Furniture order frequency | Highest overstock rate (20.8%) |
-| Stock up before promotions go live | Promotions spike demand by ~30% |
-| Monitor epidemic-sensitive categories | Demand drops 38% during epidemic periods |
-| Use rolling 7-day demand for reorder triggers | Strongest forecasting driver at 46% importance |
-
----
-
-## Repository Structure
-
-```
-├── sql_queries/
-│   ├── DataCleaning_1.sql
-│   ├── FeatureEngineering_2.sql
-│   └── Analysis_3.sql
-├── notebook/
-│   └── InventoryOptimizationAndDemandForecasting.ipynb
+```text
+retail-inventory-demand-forecasting/
+│
+├── dashboard/
+│   ├── Demand Drivers & Forecasting.PNG
+│   ├── Inventory Health & Risk.PNG
+│   └── inventory_analysis_dashboard.pbix
+│
 ├── data/
 │   ├── sales_data.csv
 │   ├── sales_data_final.csv
@@ -260,19 +88,143 @@ orders.
 │   ├── forecast_30day.csv
 │   ├── model_metrics.csv
 │   └── risk_table.csv
-├── dashboard/
-│   ├── inventory_analysis_dashboard.pbix
-│   ├── Inventory_Health_Risk.PNG
-│   └── Demand_Drivers_Forecasting.PNG
+│
+├── notebook/
+│   └── InventoryOptimizationAndDemandForecasting.ipynb
+│
+├── sql_queries/
+│   ├── DataCleaning 1.sql
+│   ├── FeatureEngineering 2.sql
+│   └── Analysis 3.sql
+│
 └── README.md
 ```
 
+## 5. Key Features
+
+### A. Data Cleaning and Preparation
+- Handle missing values and inconsistent records.
+- Prepare historical retail sales data.
+- Organize data for analysis and forecasting.
+
+### B. Demand Forecasting
+- Analyze historical demand patterns.
+- Develop machine learning-based demand forecasting.
+- Generate 30-day future demand predictions.
+
+### C. Inventory Optimization
+- Analyze inventory health and demand patterns.
+- Identify potential inventory risks.
+- Generate inventory risk reports to support stock planning.
+
+### D. Model Evaluation
+- Compare actual and predicted values.
+- Evaluate forecasting performance using model metrics.
+- Analyze prediction accuracy.
+
+### E. Power BI Dashboard
+- Demand drivers and forecasting visualization.
+- Inventory health and risk analysis.
+- Interactive business insights and performance monitoring.
+
+## 6. Dashboard Preview
+
+### Demand Drivers & Forecasting
+
+![Demand Forecasting Dashboard](dashboard/Demand%20Drivers%20%26%20Forecasting.PNG)
+
+### Inventory Health & Risk
+
+![Inventory Risk Dashboard](dashboard/Inventory%20Health%20%26%20Risk.PNG)
+
+## 7. Dataset Description
+
+The project uses retail sales data containing historical transaction information.
+
+The processed datasets include:
+
+- `sales_data.csv` – Original sales dataset.
+- `sales_data_final.csv` – Processed sales dataset.
+- `forecast_30day.csv` – Future demand predictions.
+- `actuals_vs_predicted.csv` – Actual and predicted demand comparison.
+- `model_metrics.csv` – Model evaluation results.
+- `risk_table.csv` – Inventory risk analysis.
+
+## 8. Installation and Execution
+
+### Step 1: Clone the Repository
+
+```bash
+git clone https://github.com/bhargavgopu-git/retail-inventory-demand-forecasting.git
+```
+
+### Step 2: Navigate to the Project
+
+```bash
+cd retail-inventory-demand-forecasting
+```
+
+### Step 3: Create a Virtual Environment
+
+```bash
+python3 -m venv .venv
+```
+
+Activate it on macOS:
+
+```bash
+source .venv/bin/activate
+```
+
+### Step 4: Install Dependencies
+
+```bash
+pip install pandas numpy scikit-learn matplotlib seaborn jupyter
+```
+
+### Step 5: Run the Notebook
+
+```bash
+jupyter notebook
+```
+
+Open:
+
+`notebook/InventoryOptimizationAndDemandForecasting.ipynb`
+
+### Step 6: View the Dashboard
+
+Open `dashboard/inventory_analysis_dashboard.pbix` using Microsoft Power BI Desktop.
+
+## 9. Expected Outcomes
+
+- Better understanding of retail sales and demand patterns.
+- Data-driven demand forecasting.
+- Early identification of inventory risks.
+- Improved inventory planning and stock management.
+- Clear business insights through interactive dashboards.
+
+## 10. Future Enhancements
+
+- Real-time inventory monitoring.
+- Integration with live retail databases.
+- Advanced forecasting models such as XGBoost and LSTM.
+- Automated stock replenishment recommendations.
+- Deployment as a web-based inventory analytics application.
+
+## 11. Author
+
+**Bhargav Gopu**
+
+B.Tech – Data Science
+
+Sreenidhi Institute of Science and Technology (SNIST)
+
+- GitHub: https://github.com/bhargavgopu-git
+- LinkedIn: https://www.linkedin.com/in/bhargav-gopu/
+
 ---
 
-## Tools
+**Project:** Retail Inventory & Demand Forecasting System
 
-- **Languages:** Python (Pandas, NumPy, Scikit-learn, Matplotlib), SQL
-- **Database:** Microsoft SQL Server
-- **Visualization:** Power BI
-- **Concepts:** Inventory analysis, demand forecasting, Random Forest regression, feature engineering, risk classification
-
+**Domain:** Data Science | Retail Analytics | Machine Learning | Business Intelligence
