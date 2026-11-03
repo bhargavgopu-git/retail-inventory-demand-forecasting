@@ -126,8 +126,33 @@ retail-inventory-demand-forecasting/
 - Demand drivers and forecasting visualization.
 - Inventory health and risk analysis.
 - Interactive business insights and performance monitoring.
+ ## 6. Model Performance & Evaluation
 
-## 6. Dashboard Preview
+The demand forecasting model was evaluated using multiple regression performance metrics to measure prediction errors and model effectiveness.
+
+### Evaluation Results
+
+| Evaluation Metric | Result |
+|---|---:|
+| Mean Absolute Error (MAE) | 17.92 |
+| Root Mean Squared Error (RMSE) | 24.60 |
+| R-Squared (R²) | 0.6897 |
+| Mean Absolute Percentage Error (MAPE) | 26.02% |
+
+### Performance Interpretation
+
+- **MAE – 17.92:** Predictions differ from actual demand by approximately 17.92 units on average.
+- **RMSE – 24.60:** Indicates the magnitude of prediction errors, with larger errors receiving more weight.
+- **R² – 0.6897:** The model explains approximately 68.97% of the variance in the evaluated demand data.
+- **MAPE – 26.02%:** Indicates an average absolute percentage error of approximately 26.02%, subject to the limitations of percentage-based evaluation.
+
+### Model Assessment
+
+The model demonstrates meaningful demand forecasting capability. However, further improvements in feature engineering, model selection, and hyperparameter tuning could improve prediction performance.
+
+*Note: These results represent the current evaluation output and should be interpreted in the context of the dataset and validation methodology.*
+
+## 7. Dashboard Preview
 
 ### Demand Drivers & Forecasting
 
@@ -137,7 +162,7 @@ retail-inventory-demand-forecasting/
 
 ![Inventory Risk Dashboard](dashboard/Inventory%20Health%20%26%20Risk.PNG)
 
-## 7. Dataset Description
+## 8. Dataset Description
 
 The project uses retail sales data containing historical transaction information.
 
@@ -150,7 +175,7 @@ The processed datasets include:
 - `model_metrics.csv` – Model evaluation results.
 - `risk_table.csv` – Inventory risk analysis.
 
-## 8. Installation and Execution
+## 9. Installation and Execution
 
 ### Step 1: Clone the Repository
 
@@ -196,7 +221,7 @@ Open:
 
 Open `dashboard/inventory_analysis_dashboard.pbix` using Microsoft Power BI Desktop.
 
-## 9. Expected Outcomes
+## 10. Expected Outcomes
 
 - Better understanding of retail sales and demand patterns.
 - Data-driven demand forecasting.
@@ -204,7 +229,7 @@ Open `dashboard/inventory_analysis_dashboard.pbix` using Microsoft Power BI Desk
 - Improved inventory planning and stock management.
 - Clear business insights through interactive dashboards.
 
-## 10. Future Enhancements
+## 11. Future Enhancements
 
 - Real-time inventory monitoring.
 - Integration with live retail databases.
@@ -212,7 +237,7 @@ Open `dashboard/inventory_analysis_dashboard.pbix` using Microsoft Power BI Desk
 - Automated stock replenishment recommendations.
 - Deployment as a web-based inventory analytics application.
 
-## 11. Author
+## 12. Author
 
 **Bhargav Gopu**
 
